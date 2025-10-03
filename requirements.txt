@@ -1,0 +1,7 @@
+httpx[http2]
+tqdm
+questionary
+python-dotenv
+tomli
+rich
+mmh3
