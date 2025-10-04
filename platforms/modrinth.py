@@ -5,9 +5,18 @@ import httpx
 
 from .base import BasePlatform
 from downloader import fast_download
-import config
+from utils.logger import log # <--- 新增导入
+from config import config
+from constants import get_mr_api_url
+from utils.exceptions import PlatformError
 
 class Modrinth(BasePlatform):
+    def validate_pack_info(self, pack_info: Dict[str, Any]):
+        """验证 Modrinth 整合包信息。"""
+        super().validate_pack_info(pack_info)
+        if 'dependencies' not in pack_info or not isinstance(pack_info.get('dependencies'), dict):
+            raise PlatformError("Modrinth modrinth.index.json 格式无效：缺少 'dependencies' 键。")
+
     async def get_info(self, pack_info: Dict[str, Any]) -> Dict[str, str]:
         deps = pack_info['dependencies']
         info = {'minecraft': deps.get('minecraft', 'unknown'), 'loader': 'unknown', 'loader_version': 'unknown'}

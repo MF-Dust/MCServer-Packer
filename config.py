@@ -1,32 +1,74 @@
 import os
+import yaml
 from pathlib import Path
 from dotenv import load_dotenv
+from utils.logger import log
 
-# --- 全局变量和配置 ---
-load_dotenv()
-CURSEFORGE_API_KEY = os.getenv("CURSEFORGE_API_KEY", "$2a$10$bL4bIL5pUWqfcO7KQtnMReakwtfHbNKh6v1uTpKlzhwoueEJQnPnm")
+class Config:
+    def __init__(self):
+        # --- 默认配置 ---
+        self.defaults = {
+            'download': {
+                'concurrency': 16,
+                'display_concurrency': 5,
+                'retries': 3
+            },
+            'deearth': {
+                'concurrency': 10
+            },
+            'installer': {
+                'java_memory': '4G'
+            }
+        }
+        self.settings = self.defaults.copy()
+        self._load_from_file()
 
-# 这个变量会在 main.py 中被用户输入所修改
-use_mirror = True
+        # --- 环境变量和常量 ---
+        load_dotenv()
+        self.CURSEFORGE_API_KEY = os.getenv("CURSEFORGE_API_KEY", "$2a$10$bL4bIL5pUWqfcO7KQtnMReakwtfHbNKh6v1uTpKlzhwoueEJQnPnm")
+        self.use_mirror = True  # 会在 main.py 中被用户选择覆盖
+        self.is_development = os.getenv("DEVELOPMENT") is not None
+        
+        self.unzip_path = Path.cwd() / "instance"
+        self.DEEARTH_CACHE_PATH = self.unzip_path / ".deearth_cache.json"
 
-is_development = os.getenv("DEVELOPMENT") is not None
+    def _load_from_file(self):
+        config_path = Path.cwd() / "config.yaml"
+        if config_path.exists():
+            try:
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    user_config = yaml.safe_load(f)
+                
+                # 深度合并
+                for key, value in user_config.items():
+                    if isinstance(value, dict) and key in self.settings:
+                        self.settings[key].update(value)
+                    else:
+                        self.settings[key] = value
+                log.info("已从 config.yaml 加载自定义配置。")
+            except Exception as e:
+                log.error(f"加载 config.yaml 失败: {e}")
 
-# API URLs
-CF_MIRROR_URL = "https://mod.mcimirror.top"
-MR_MIRROR_URL = "https://mod.mcimirror.top"
-BMCLAPI_URL = "https://bmclapi2.bangbang93.com"
-DEEARTH_API_URL = "https://dearth.0771010.xyz/api"  # 新增
+    @property
+    def download_concurrency(self):
+        return self.settings['download']['concurrency']
 
-# 工作路径
-unzip_path = Path.cwd() / "instance"
-DEEARTH_CACHE_PATH = unzip_path / ".deearth_cache.json"
+    @property
+    def display_concurrency(self):
+        return self.settings['download']['display_concurrency']
 
-# 已知是通用模组，防止被误识别
-KNOWN_UNIVERSAL_MODS = {"geckolib", "supplementaries"}
+    @property
+    def download_retries(self):
+        return self.settings['download']['retries']
+        
+    @property
+    def deearth_concurrency(self):
+        return self.settings['deearth']['concurrency']
+        
+    @property
+    def java_memory(self):
+        return self.settings['installer']['java_memory']
 
-# --- 动态 URL 函数 ---
-def get_cf_api_url():
-    return f"{CF_MIRROR_URL}/curseforge" if use_mirror else "https://api.curseforge.com"
 
-def get_mr_api_url():
-    return f"{MR_MIRROR_URL}/modrinth" if use_mirror else "https://api.modrinth.com"
+# 创建一个全局配置实例
+config = Config()

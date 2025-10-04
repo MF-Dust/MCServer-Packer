@@ -1,7 +1,7 @@
-httpx[http2]
-tqdm
+httpx
 questionary
-python-dotenv
 tomli
+python-dotenv
 rich
 mmh3
+pyyaml

@@ -5,10 +5,18 @@ import httpx
 
 from .base import BasePlatform
 from downloader import fast_download, async_client
-from utils.logger import log
-import config
+from utils.logger import log # <--- 新增导入
+from config import config
+from constants import get_cf_api_url
+from utils.exceptions import PlatformError
 
 class CurseForge(BasePlatform):
+    def validate_pack_info(self, pack_info: Dict[str, Any]):
+        """验证 CurseForge 整合包信息。"""
+        super().validate_pack_info(pack_info)
+        if 'minecraft' not in pack_info or 'version' not in pack_info.get('minecraft', {}) or 'modLoaders' not in pack_info.get('minecraft', {}):
+            raise PlatformError("CurseForge manifest.json 格式无效：缺少 'minecraft', 'version', 或 'modLoaders' 键。")
+
     async def get_info(self, pack_info: Dict[str, Any]) -> Dict[str, str]:
         info = {'minecraft': pack_info['minecraft']['version'], 'loader': 'unknown', 'loader_version': 'unknown'}
         loader_id = pack_info['minecraft']['modLoaders'][0]['id']
@@ -22,7 +30,7 @@ class CurseForge(BasePlatform):
         file_ids = [file['fileID'] for file in pack_info['files']]
 
         response = await async_client.post(
-            f"{config.get_cf_api_url()}/v1/mods/files",
+            f"{get_cf_api_url()}/v1/mods/files",
             json={"fileIds": file_ids},
             headers={"x-api-key": config.CURSEFORGE_API_KEY}
         )

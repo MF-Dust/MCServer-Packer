@@ -1,6 +1,5 @@
 import asyncio
 import json
-import logging
 import shutil
 import sys
 import zipfile
@@ -8,12 +7,13 @@ from pathlib import Path
 
 import questionary
 
-import config
+from config import config
 from deearth import deearth_main
 from downloader import async_client
 from platforms import get_platform
 from server_installer import install_server, create_launch_scripts
 from utils.logger import log, console
+from utils.exceptions import DeEarthError
 
 def cleanup(path: Path):
     """删除不需要的文件和目录"""
@@ -40,6 +40,7 @@ def cleanup(path: Path):
                 shutil.rmtree(item_path, ignore_errors=True)
         except Exception:
             pass
+
 
 async def main_logic(modpack_path_str: str):
     modpack_path = Path(modpack_path_str)
@@ -84,6 +85,7 @@ async def main_logic(modpack_path_str: str):
         log.error("无法识别的整合包平台，仅支持 CurseForge 和 Modrinth")
         return
 
+    platform.validate_pack_info(pack_info)
     info = await platform.get_info(pack_info)
     log.info(f"整合包信息: MC {info['minecraft']}, 加载器 {info['loader']}@{info['loader_version']}")
 
@@ -152,6 +154,8 @@ if __name__ == "__main__":
         asyncio.run(cli_main())
     except KeyboardInterrupt:
         log.info("\n操作被用户中断")
+    except DeEarthError as e:
+        log.error(f"发生错误: {e}")
     except Exception as e:
-        log.error(f"发生未处理的错误: {e}")
+        log.error(f"发生未处理的意外错误: {e}")
         console.print_exception(show_locals=False)

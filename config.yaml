@@ -1,0 +1,18 @@
+# 下载相关配置
+download:
+  # 并发下载数
+  concurrency: 16
+  # 显示在进度条中的并发任务数
+  display_concurrency: 5
+  # 下载重试次数
+  retries: 3
+
+# DeEarth 模组筛选配置
+deearth:
+  # 并发检测数
+  concurrency: 10
+
+# 服务端安装器配置
+installer:
+  # 启动脚本中的内存分配
+  java_memory: 4G
